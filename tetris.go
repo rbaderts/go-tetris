@@ -3,15 +3,15 @@ package main
 import (
 	"fmt"
 	//gc "github.com/rthornton128/goncurses"
-    gc  "github.com/RickBadertscher/goncurses"
+	"bytes"
+	gc "github.com/RickBadertscher/goncurses"
 	"github.com/skelterjohn/geom"
 	"log"
-	"os"
-	"time"
-	"sync"
-	"bytes"
-	"sort"
 	"math/rand"
+	"os"
+	"sort"
+	"sync"
+	"time"
 )
 
 type ShapeType int
@@ -27,6 +27,7 @@ const (
 )
 
 type TetriminoType int
+
 const (
 	O TetriminoType = 0
 	I TetriminoType = 1
@@ -37,7 +38,7 @@ const (
 	S TetriminoType = 6
 )
 
-func (o* Orientation) RotateRight() (Orientation) {
+func (o *Orientation) RotateRight() Orientation {
 	switch *o {
 	case North:
 		return East
@@ -50,7 +51,7 @@ func (o* Orientation) RotateRight() (Orientation) {
 	}
 	return North
 }
-func (o* Orientation) RotateLeft() (Orientation) {
+func (o *Orientation) RotateLeft() Orientation {
 	switch *o {
 	case North:
 		return West
@@ -65,24 +66,24 @@ func (o* Orientation) RotateLeft() (Orientation) {
 }
 
 type Game struct {
-	top, bottom, right, left   int
-	shapes      []*Shape
-	fallingShape *Shape
-	win         *gc.Window
-	shapeWin    *gc.Window
-	floor       *Fill
-	mutex		*sync.Mutex
+	top, bottom, right, left int
+	shapes                   []*Shape
+	fallingShape             *Shape
+	win                      *gc.Window
+	shapeWin                 *gc.Window
+	floor                    *Fill
+	mutex                    *sync.Mutex
 }
 type Shape struct {
-	win		*gc.Window
+	win               *gc.Window
 	tetriminoTemplate *Tetrimino
-	path     *Path
-	orientation Orientation
-	poly     *geom.Polygon
-	x  		 int
-	y 		 int
-	w   	 int
-	h        int
+	path              *Path
+	orientation       Orientation
+	poly              *geom.Polygon
+	x                 int
+	y                 int
+	w                 int
+	h                 int
 }
 
 type Coord struct {
@@ -91,34 +92,33 @@ type Coord struct {
 }
 
 func (c Coord) translate(x, y int) {
-	c.x = c.x + x;
-	c.y = c.y + y;
+	c.x = c.x + x
+	c.y = c.y + y
 }
 
-func (c Coord) translateCopy(x, y int) (Coord){
-	return Coord{c.x+x, c.y+y}
+func (c Coord) translateCopy(x, y int) Coord {
+	return Coord{c.x + x, c.y + y}
 }
 
 type Path struct {
 	points []Coord
 }
 
-func (p* Path) String() string {
+func (p *Path) String() string {
 	var b bytes.Buffer // A Buffer needs no initialization.
 	for _, c := range p.points {
-		fmt.Fprintf(&b, "{%v,%v}", c.x, c.y);
+		fmt.Fprintf(&b, "{%v,%v}", c.x, c.y)
 	}
 	return b.String()
 }
 
-func (p *Path) translateCopy(x, y int) (*Path){
+func (p *Path) translateCopy(x, y int) *Path {
 	newpath := new(Path)
 	for i, _ := range p.points {
 		newpath.points = append(newpath.points, p.points[i].translateCopy(x, y))
 	}
 	return newpath
 }
-
 
 func (p *Path) translate(x, y int) {
 	for i, _ := range p.points {
@@ -128,10 +128,10 @@ func (p *Path) translate(x, y int) {
 
 }
 
-func (p* Path) getRightEdge() (int) {
+func (p *Path) getRightEdge() int {
 
 	var edge int = 0
-	for _,c := range p.points {
+	for _, c := range p.points {
 
 		if c.x > edge {
 			edge = c.x
@@ -141,11 +141,10 @@ func (p* Path) getRightEdge() (int) {
 	return edge
 }
 
-
-func (p* Path) getLeftEdge() (int) {
+func (p *Path) getLeftEdge() int {
 
 	var edge int = 100
-	for _,c := range p.points {
+	for _, c := range p.points {
 
 		if c.x < edge {
 			edge = c.x
@@ -153,7 +152,6 @@ func (p* Path) getLeftEdge() (int) {
 	}
 	return edge
 }
-
 
 type IntSet struct {
 	slice []int
@@ -165,25 +163,26 @@ func (i *IntSet) Add(v int) {
 	}
 	i.slice = append(i.slice, v)
 }
-func (i *IntSet) Contains(v int) (bool) {
-	for _,val := range i.slice {
+func (i *IntSet) Contains(v int) bool {
+	for _, val := range i.slice {
 		if val == v {
 			return true
 		}
 	}
 	return false
 }
-func NewIntSet() (*IntSet) {
+func NewIntSet() *IntSet {
 	var i *IntSet = new(IntSet)
 	i.slice = make([]int, 0)
 	return i
 }
+
 type Fill struct {
-	rows    map[int]*IntSet
+	rows      map[int]*IntSet
 	bottomRow int
 }
 
-func NewFill(bottomRow int) (*Fill) {
+func NewFill(bottomRow int) *Fill {
 	f := new(Fill)
 	f.bottomRow = bottomRow
 	f.rows = make(map[int]*IntSet)
@@ -192,7 +191,7 @@ func NewFill(bottomRow int) (*Fill) {
 
 func (f *Fill) compress() {
 
-    keys := make([]int, 0, len(f.rows))
+	keys := make([]int, 0, len(f.rows))
 	for k := range f.rows {
 		keys = append(keys, k)
 	}
@@ -214,14 +213,12 @@ func (f *Fill) compress() {
 
 }
 
-
-
-func (f* Fill) removeRow(row int) {
+func (f *Fill) removeRow(row int) {
 	clog("removing row from floor: %v\n", row)
 	delete(f.rows, row)
 }
 
-func (f* Fill) addRow(y int, width int) {
+func (f *Fill) addRow(y int, width int) {
 	if f.rows[y] == nil {
 		f.rows[y] = NewIntSet()
 	}
@@ -230,8 +227,8 @@ func (f* Fill) addRow(y int, width int) {
 	}
 }
 
-func (f* Fill) addCoords(coords[] Coord) {
-	for _,c := range coords {
+func (f *Fill) addCoords(coords []Coord) {
+	for _, c := range coords {
 		if f.rows[c.y] == nil {
 			f.rows[c.y] = NewIntSet()
 		}
@@ -240,7 +237,7 @@ func (f* Fill) addCoords(coords[] Coord) {
 	}
 }
 
-func (f* Fill) String() string {
+func (f *Fill) String() string {
 	var b bytes.Buffer
 	for k, _ := range f.rows {
 		fmt.Fprintf(&b, "%v : %v\n", k, *(f.rows[k]))
@@ -248,7 +245,7 @@ func (f* Fill) String() string {
 	return b.String()
 }
 
-func (f* Fill) intersects(other* Path) (bool) {
+func (f *Fill) intersects(other *Path) bool {
 
 	for _, c := range other.points {
 		iset := f.rows[c.y]
@@ -256,21 +253,16 @@ func (f* Fill) intersects(other* Path) (bool) {
 			return true
 		}
 	}
-	return false;
+	return false
 }
 
-
-
 type Tetrimino struct {
-	H int
-	W int
-	North 	[]Coord
-	East 	[]Coord
-	South 	[]Coord
-	West 	[]Coord
-
-
-
+	H     int
+	W     int
+	North []Coord
+	East  []Coord
+	South []Coord
+	West  []Coord
 }
 
 var tetriminos map[TetriminoType]*Tetrimino
@@ -279,47 +271,46 @@ func init() {
 
 	tetriminos = make(map[TetriminoType]*Tetrimino)
 	tetriminos[O] = &Tetrimino{2, 2,
-		[]Coord{{0,0},{0,1},{1,0},{1,1}},
-		[]Coord{{0,0},{0,1},{1,0},{1,1}},
-		[]Coord{{0,0},{0,1},{1,0},{1,1}},
-		[]Coord{{0,0},{0,1},{1,0},{1,1}}}
+		[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+		[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+		[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+		[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}}}
 
 	tetriminos[I] = &Tetrimino{4, 4,
-		[]Coord{{3,0},{3,1},{3,2},{3,3}},
-		[]Coord{{0,1},{1,1},{2,1},{3,1}},
-		[]Coord{{3,0},{3,1},{3,2},{3,3}},
-		[]Coord{{0,2},{1,2},{2,2},{3,2}}}
+		[]Coord{{3, 0}, {3, 1}, {3, 2}, {3, 3}},
+		[]Coord{{0, 1}, {1, 1}, {2, 1}, {3, 1}},
+		[]Coord{{3, 0}, {3, 1}, {3, 2}, {3, 3}},
+		[]Coord{{0, 2}, {1, 2}, {2, 2}, {3, 2}}}
 
 	tetriminos[T] = &Tetrimino{3, 3,
-		[]Coord{{1,1},{0,2},{1,2},{2,2}},
-		[]Coord{{0,1},{1,0},{1,1},{1,2}},
-		[]Coord{{0,1},{1,1},{2,1},{1,2}},
-		[]Coord{{2,1},{1,0},{1,1},{1,2}}}
+		[]Coord{{1, 1}, {0, 2}, {1, 2}, {2, 2}},
+		[]Coord{{0, 1}, {1, 0}, {1, 1}, {1, 2}},
+		[]Coord{{0, 1}, {1, 1}, {2, 1}, {1, 2}},
+		[]Coord{{2, 1}, {1, 0}, {1, 1}, {1, 2}}}
 
 	tetriminos[J] = &Tetrimino{3, 3,
-		[]Coord{{0,1},{1,1},{2,1},{2,2}},
-		[]Coord{{1,0},{1,1},{1,2},{0,2}},
-		[]Coord{{0,1},{0,2},{1,2},{2,2}},
-		[]Coord{{1,0},{2,0},{1,1},{1,2}}}
+		[]Coord{{0, 1}, {1, 1}, {2, 1}, {2, 2}},
+		[]Coord{{1, 0}, {1, 1}, {1, 2}, {0, 2}},
+		[]Coord{{0, 1}, {0, 2}, {1, 2}, {2, 2}},
+		[]Coord{{1, 0}, {2, 0}, {1, 1}, {1, 2}}}
 
 	tetriminos[L] = &Tetrimino{3, 3,
-		[]Coord{{0,1},{1,1},{2,1},{0,2}},
-		[]Coord{{0,0},{1,0},{1,1},{2,1}},
-		[]Coord{{0,2},{1,2},{2,2},{2,1}},
-		[]Coord{{1,0},{1,1},{1,2},{2,2}}}
+		[]Coord{{0, 1}, {1, 1}, {2, 1}, {0, 2}},
+		[]Coord{{0, 0}, {1, 0}, {1, 1}, {2, 1}},
+		[]Coord{{0, 2}, {1, 2}, {2, 2}, {2, 1}},
+		[]Coord{{1, 0}, {1, 1}, {1, 2}, {2, 2}}}
 
 	tetriminos[Z] = &Tetrimino{3, 3,
-		[]Coord{{0,1},{1,1},{1,2},{2,2}},
-		[]Coord{{2,0},{1,1},{2,1},{1,2}},
-		[]Coord{{0,1},{1,1},{1,2},{2,2}},
-		[]Coord{{1,0},{0,1},{1,1},{0,2}}}
+		[]Coord{{0, 1}, {1, 1}, {1, 2}, {2, 2}},
+		[]Coord{{2, 0}, {1, 1}, {2, 1}, {1, 2}},
+		[]Coord{{0, 1}, {1, 1}, {1, 2}, {2, 2}},
+		[]Coord{{1, 0}, {0, 1}, {1, 1}, {0, 2}}}
 
 	tetriminos[S] = &Tetrimino{3, 3,
-		[]Coord{{0,2},{1,1},{1,2},{2,1}},
-		[]Coord{{1,0},{1,1},{2,1},{2,2}},
-		[]Coord{{0,2},{1,1},{1,2},{2,1}},
-		[]Coord{{0,0},{0,1},{1,1},{1,2}}}
-
+		[]Coord{{0, 2}, {1, 1}, {1, 2}, {2, 1}},
+		[]Coord{{1, 0}, {1, 1}, {2, 1}, {2, 2}},
+		[]Coord{{0, 2}, {1, 1}, {1, 2}, {2, 1}},
+		[]Coord{{0, 0}, {0, 1}, {1, 1}, {1, 2}}}
 
 }
 
@@ -364,10 +355,10 @@ func NewShape(tetrimino TetriminoType, win *gc.Window) *Shape {
 	return s
 }
 
-func (shape *Shape) getTopEdge() (int) {
+func (shape *Shape) getTopEdge() int {
 
 	var edge int = 100
-	for _,c := range shape.path.points {
+	for _, c := range shape.path.points {
 
 		if c.y < edge {
 			edge = c.y
@@ -376,27 +367,23 @@ func (shape *Shape) getTopEdge() (int) {
 	return edge
 }
 
-
 func (shape *Shape) move(x int, y int) {
 
 	clog("shape.move by: %v, %v, new location = {%v,%v}\n", x, y, shape.x+x, shape.y+y)
-	shape.win.MoveWindow(shape.y + y, shape.x + x)
+	shape.win.MoveWindow(shape.y+y, shape.x+x)
 
 	shape.x += x
 	shape.y += y
 
 	shape.path.translate(x, y)
 
-
-
 }
 
-
-func (shape* Shape) updatePath() (*Path) {
+func (shape *Shape) updatePath() *Path {
 
 	var p *Path = new(Path)
 
-	switch(shape.orientation) {
+	switch shape.orientation {
 	case North:
 		p.points = make([]Coord, len(shape.tetriminoTemplate.North))
 		copy(p.points, shape.tetriminoTemplate.North)
@@ -415,7 +402,6 @@ func (shape* Shape) updatePath() (*Path) {
 	p.translate(shape.x, shape.y)
 	shape.path = p
 
-
 	return p
 }
 
@@ -423,16 +409,15 @@ func (shape *Shape) draw(parent *gc.Window) {
 	parent.Overlay(shape.win)
 
 }
-func (shape* Shape) rotateLeft() {
+func (shape *Shape) rotateLeft() {
 
 	shape.orientation = shape.orientation.RotateLeft()
 	shape.win.Clear()
 	shape.tetriminoTemplate.draw(shape.win, shape.orientation)
 	shape.path = shape.updatePath()
 
-
 }
-func (shape* Shape) rotateRight() {
+func (shape *Shape) rotateRight() {
 	shape.orientation = shape.orientation.RotateRight()
 	shape.win.Clear()
 	shape.tetriminoTemplate.draw(shape.win, shape.orientation)
@@ -440,8 +425,8 @@ func (shape* Shape) rotateRight() {
 
 }
 
-
 var stdscr *gc.Window
+
 func main() {
 
 	f, err := os.OpenFile("testlogfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -456,17 +441,15 @@ func main() {
 	stdscr, err = gc.Init()
 	stdscr.Resize(12, 12)
 
-
 	game := NewGame(stdscr)
 
 	quitchannel := make(chan int)
 	go game.gameloop()
 
 	select {
-	case <- quitchannel:
+	case <-quitchannel:
 		clog("exiting)")
 	}
-
 
 }
 
@@ -474,8 +457,8 @@ func (game *Game) checkFloor() {
 	clog("check floor: %v\n", game.floor)
 
 	var clearrows []int = make([]int, 0)
-	for k, v :=  range game.floor.rows {
-	    if len(v.slice) == (game.right - game.left - 1) {
+	for k, v := range game.floor.rows {
+		if len(v.slice) == (game.right - game.left - 1) {
 			clearrows = append(clearrows, k)
 		}
 	}
@@ -483,13 +466,12 @@ func (game *Game) checkFloor() {
 	for _, v := range clearrows {
 
 		game.win.AttrOn(gc.A_BLINK)
-		game.win.HLine(v, 0, '+', game.right - game.left)
+		game.win.HLine(v, 0, '+', game.right-game.left)
 
 		game.win.Refresh()
 		gc.Update()
 		game.win.AttrOff(gc.A_BLINK)
-		gc.Nap(2000);
-
+		gc.Nap(2000)
 
 	}
 
@@ -504,8 +486,7 @@ func (game *Game) checkFloor() {
 }
 func (game *Game) MoveFallingShape(x int, y int) bool {
 
-
-	if (x != 0) {
+	if x != 0 {
 		tmppath := game.fallingShape.path.translateCopy(x, 0)
 
 		var edge int
@@ -518,7 +499,7 @@ func (game *Game) MoveFallingShape(x int, y int) bool {
 			clog("cant move any more left or right\n")
 			return true
 		}
-		if (game.floor.intersects(tmppath)) {
+		if game.floor.intersects(tmppath) {
 			clog("shape hit the stack from the side\n")
 			return true
 		}
@@ -526,14 +507,14 @@ func (game *Game) MoveFallingShape(x int, y int) bool {
 		game.fallingShape.move(x, 0)
 		return true
 
-	} else if (y > 0) {
-		tmppath := game.fallingShape.path.translateCopy(0,y)
+	} else if y > 0 {
+		tmppath := game.fallingShape.path.translateCopy(0, y)
 
 		if game.hitBottom(tmppath) {
-			game.floor.addCoords(game.fallingShape.path.points);
+			game.floor.addCoords(game.fallingShape.path.points)
 			game.checkFloor()
 			if game.dropShape() == false {
-				return false;
+				return false
 			}
 			return true
 		}
@@ -542,22 +523,20 @@ func (game *Game) MoveFallingShape(x int, y int) bool {
 
 	}
 
-
 	return true
 
 }
 
-
 func (game *Game) hitBottom(p *Path) bool {
 
-	for _,c := range p.points {
-		if c.y  >= game.bottom {
+	for _, c := range p.points {
+		if c.y >= game.bottom {
 			clog("shape hit the bottom at %d\n", c.y)
 			return true
 		}
 	}
 
-	if (game.floor.intersects(p)) {
+	if game.floor.intersects(p) {
 		clog("shape hit the stack\n")
 		return true
 	}
@@ -569,29 +548,25 @@ func NewGame(parent *gc.Window) *Game {
 	game := new(Game)
 	h, w := parent.MaxYX()
 
-
 	clog("newGame:  h,w = %v,%v\n", h, w)
-	game.top	= 0
+	game.top = 0
 	game.bottom = h - 1
-	game.left   = 0
-	game.right  = w - 1
-
+	game.left = 0
+	game.right = w - 1
 
 	game.floor = NewFill(game.bottom - 1)
-	game.win,_ = gc.NewWindow(h, w, 0, 0)
+	game.win, _ = gc.NewWindow(h, w, 0, 0)
 
-	game.shapeWin, _= gc.NewWindow(1, 1, 1, 5)
+	game.shapeWin, _ = gc.NewWindow(1, 1, 1, 5)
 
-	y, x := game.win.YX()
 	h, w = game.win.MaxYX()
 	return game
 
-	}
+}
 func (game *Game) draw(win *gc.Window) {
 
 	game.win.Erase()
-	game.win.Border('|','|', '-', '-', '+','+','+','+')
-
+	game.win.Border('|', '|', '-', '-', '+', '+', '+', '+')
 
 	for k, v := range game.floor.rows {
 		for _, x := range v.slice {
@@ -604,20 +579,18 @@ func (game *Game) draw(win *gc.Window) {
 
 }
 
-func (game *Game) dropShape() (bool){
+func (game *Game) dropShape() bool {
 
-
-	r := rand.Intn(6);
+	r := rand.Intn(6)
 	game.fallingShape = NewShape(TetriminoType(r), game.shapeWin)
 
-	if game.fallingShape.getTopEdge() < 0  ||
-	   game.hitBottom(game.fallingShape.path) {
+	if game.fallingShape.getTopEdge() < 0 ||
+		game.hitBottom(game.fallingShape.path) {
 
 		return false
 	}
 
 	return true
-
 
 }
 func (game *Game) gameloop() {
@@ -641,32 +614,28 @@ func (game *Game) gameloop() {
 
 	game.dropShape()
 
-	loop:
+loop:
 
-		for {
+	for {
 
-			game.draw(stdscr)
-			game.win.Refresh()
+		game.draw(stdscr)
+		game.win.Refresh()
 
-			go game.handleInput(updates)
+		go game.handleInput(updates)
 
 		select {
 
+		case <-updates:
+			clog("update\n")
+			game.win.Erase()
+			game.draw(stdscr)
 
-			case <-updates:
-			    clog("update\n")
-				game.win.Erase()
-				game.draw(stdscr)
-
-
-			case <-c.C:
-					if game.MoveFallingShape(0, 1) == false {
-						break loop
-					}
-
-
+		case <-c.C:
+			if game.MoveFallingShape(0, 1) == false {
+				break loop
 			}
 
+		}
 
 	}
 
@@ -674,9 +643,9 @@ func (game *Game) gameloop() {
 
 }
 
-func (game *Game) handleInput(updates chan int)  {
+func (game *Game) handleInput(updates chan int) {
 	game.win.Timeout(1000)
-	for ;; {
+	for {
 
 		k := game.win.GetChar()
 
@@ -706,21 +675,20 @@ func (game *Game) handleInput(updates chan int)  {
 
 			updates <- 1
 
-
 		}
 	}
 
 }
 
-var logMutex *sync.Mutex;
+var logMutex *sync.Mutex
 
 func init() {
 	logMutex = new(sync.Mutex)
 }
 
-func clog (s string, args ...interface{}) {
-	logMutex.Lock() 
-		log.Printf(s, args...)
+func clog(s string, args ...interface{}) {
+	logMutex.Lock()
+	log.Printf(s, args...)
 	logMutex.Unlock()
 
 }
