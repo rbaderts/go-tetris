@@ -1,0 +1,71 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;Tetris&gt;">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../PokerServer" />
+      <root url="file://$PROJECT_DIR$/../poker" />
+      <root url="file://$PROJECT_DIR$/../.hgignore" />
+      <root url="file://$PROJECT_DIR$/../.git" />
+      <root url="file://$PROJECT_DIR$/../code.google.com" />
+      <root url="file://$PROJECT_DIR$/../tserver" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../rectgame" />
+      <root url="file://$PROJECT_DIR$/../drum" />
+      <root url="file://$PROJECT_DIR$/../thechallenge" />
+      <root url="file://$PROJECT_DIR$/../KafkaQueueFiles" />
+      <root url="file://$PROJECT_DIR$/../decoder" />
+      <root url="file://$PROJECT_DIR$/../list" />
+      <root url="file://$PROJECT_DIR$/../wgame" />
+      <root url="file://$PROJECT_DIR$/../.DS_Store" />
+      <root url="file://$PROJECT_DIR$/../arrays" />
+      <root url="file://$PROJECT_DIR$/../tcptap" />
+      <root url="file://$PROJECT_DIR$/../ncurses.go" />
+      <root url="file://$PROJECT_DIR$/../Life" />
+      <root url="file://$PROJECT_DIR$/../wgame copy" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <excluded>
+      <root url="file://$PROJECT_DIR$/../github.com/twinj/uuid/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/zenazn/goji/.git" />
+      <root url="file://$PROJECT_DIR$/../KafkaQueueFiles/testdata" />
+      <root url="file://$PROJECT_DIR$/../github.com/Shopify/sarama/.git" />
+      <root url="file://$PROJECT_DIR$/../KafkaQueueFiles/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/go-gl/glfw/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/golang/snappy/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/dgrijalva/jwt-go/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/gorilla/mux/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/golang/glog/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/skelterjohn/geom/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/trusch/httpauth/.git" />
+      <root url="file://$PROJECT_DIR$/../golang.org/x/crypto/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/gorilla/pat/.git" />
+      <root url="file://$PROJECT_DIR$/../code.google.com/p/go-uuid/.hg" />
+      <root url="file://$PROJECT_DIR$/../github.com/Mistobaan/env/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/syndtr/goleveldb/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/gorilla/context/.git" />
+      <root url="file://$PROJECT_DIR$/../poker/.idea" />
+      <root url="file://$PROJECT_DIR$/../github.com/lib/pq/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/eapache/queue/.git" />
+      <root url="file://$PROJECT_DIR$/../.git" />
+      <root url="file://$PROJECT_DIR$/../golang.org/x/text/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/gorilla/sessions/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/rthornton128/goncurses/.git" />
+      <root url="file://$PROJECT_DIR$/../wgame/golang-jwt-authentication-api-sample/.git" />
+      <root url="file://$PROJECT_DIR$/../wgame copy/golang-jwt-authentication-api-sample/.git" />
+      <root url="file://$PROJECT_DIR$/../PokerServer/.idea" />
+      <root url="file://$PROJECT_DIR$/../github.com/google/gopacket/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/eapache/go-resiliency/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/deckarep/golang-set/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/gorilla/securecookie/.git" />
+      <root url="file://$PROJECT_DIR$/../github.com/codegangsta/negroni/.git" />
+      <root url="file://$PROJECT_DIR$" />
+      <root url="file://$PROJECT_DIR$/../code.google.com/p/snappy-go/.hg" />
+      <root url="file://$PROJECT_DIR$/../golang.org/x/crypto/ssh/testdata" />
+      <root url="file://$PROJECT_DIR$/../golang.org/x/crypto/sha3/testdata" />
+      <root url="file://$PROJECT_DIR$/../github.com/RickBadertscher/goncurses/.git" />
+      <root url="file://$PROJECT_DIR$/../Life/.idea" />
+      <root url="file://$PROJECT_DIR$/../golang.org/x/text/encoding/testdata" />
+    </excluded>
+  </library>
+</component>
