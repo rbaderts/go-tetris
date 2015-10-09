@@ -1,2 +1,2 @@
 # go-tetris
-go tetris with ncurses
+Just playing with go channels and ncurses
