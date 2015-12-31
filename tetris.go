@@ -1,57 +1,53 @@
 package main
 
 import (
-	"fmt"
-	//gc "github.com/rthornton128/goncurses"
 	"bytes"
+	"fmt"
 	gc "github.com/RickBadertscher/goncurses"
 	"github.com/skelterjohn/geom"
 	"log"
 	"math/rand"
 	"os"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
 
 type ShapeType int
-
+type TetriminoType int
 type Orientation int
 
 const (
-	_ Orientation = iota
-	North
-	South
-	East
-	West
+	_     Orientation = iota
+	North             // 1
+	East              // 2
+	South             // 3
+	West              // 4
 )
 
-type TetriminoType int
-
 const (
-	O TetriminoType = 0
-	I TetriminoType = 1
-	T TetriminoType = 2
-	J TetriminoType = 3
-	L TetriminoType = 4
-	Z TetriminoType = 5
-	S TetriminoType = 6
+	O = iota
+	I
+	T
+	J
+	L
+	Z
+	S
+	RANDOM
 )
 
 func (o *Orientation) RotateRight() Orientation {
-	switch *o {
-	case North:
-		return East
-	case East:
-		return South
-	case South:
-		return West
-	case West:
-		return North
-	}
-	return North
+	return ((*o + 100) % 4) + 1
+
 }
+
 func (o *Orientation) RotateLeft() Orientation {
+	return ((*o - 2 + 100) % 4) + 1
+
+}
+
+/*
 	switch *o {
 	case North:
 		return West
@@ -63,7 +59,7 @@ func (o *Orientation) RotateLeft() Orientation {
 		return South
 	}
 	return North
-}
+*/
 
 type Game struct {
 	top, bottom, right, left int
@@ -71,8 +67,10 @@ type Game struct {
 	fallingShape             *Shape
 	win                      *gc.Window
 	shapeWin                 *gc.Window
+	scoreWin                 *gc.Window
 	floor                    *Fill
 	mutex                    *sync.Mutex
+	linesCleared             int
 }
 type Shape struct {
 	win               *gc.Window
@@ -240,8 +238,9 @@ func (f *Fill) addCoords(coords []Coord) {
 func (f *Fill) String() string {
 	var b bytes.Buffer
 	for k, _ := range f.rows {
-		fmt.Fprintf(&b, "%v : %v\n", k, *(f.rows[k]))
+		fmt.Fprintf(&b, "%v:%v, ", k, *(f.rows[k]))
 	}
+	fmt.Fprintf(&b, "\n")
 	return b.String()
 }
 
@@ -256,13 +255,16 @@ func (f *Fill) intersects(other *Path) bool {
 	return false
 }
 
+type Bitmaps map[Orientation][]Coord
+
 type Tetrimino struct {
-	H     int
-	W     int
-	North []Coord
-	East  []Coord
-	South []Coord
-	West  []Coord
+	H       int
+	W       int
+	bitmaps Bitmaps
+	//	North []Coord
+	//	East  []Coord
+	//	South []Coord
+	//	West  []Coord
 }
 
 var tetriminos map[TetriminoType]*Tetrimino
@@ -270,64 +272,126 @@ var tetriminos map[TetriminoType]*Tetrimino
 func init() {
 
 	tetriminos = make(map[TetriminoType]*Tetrimino)
-	tetriminos[O] = &Tetrimino{2, 2,
-		[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-		[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-		[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-		[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}}}
 
-	tetriminos[I] = &Tetrimino{4, 4,
-		[]Coord{{3, 0}, {3, 1}, {3, 2}, {3, 3}},
-		[]Coord{{0, 1}, {1, 1}, {2, 1}, {3, 1}},
-		[]Coord{{3, 0}, {3, 1}, {3, 2}, {3, 3}},
-		[]Coord{{0, 2}, {1, 2}, {2, 2}, {3, 2}}}
+	tetriminos[O] = &Tetrimino{2, 2, nil}
+	tetriminos[O].bitmaps = Bitmaps{
+		North: []Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+		East:  []Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+		South: []Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+		West:  []Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+	}
 
-	tetriminos[T] = &Tetrimino{3, 3,
-		[]Coord{{1, 1}, {0, 2}, {1, 2}, {2, 2}},
-		[]Coord{{0, 1}, {1, 0}, {1, 1}, {1, 2}},
-		[]Coord{{0, 1}, {1, 1}, {2, 1}, {1, 2}},
-		[]Coord{{2, 1}, {1, 0}, {1, 1}, {1, 2}}}
+	tetriminos[I] = &Tetrimino{4, 4, nil}
+	tetriminos[I].bitmaps = Bitmaps{
+		North: []Coord{{3, 0}, {3, 1}, {3, 2}, {3, 3}},
+		East:  []Coord{{0, 1}, {1, 1}, {2, 1}, {3, 1}},
+		South: []Coord{{3, 0}, {3, 1}, {3, 2}, {3, 3}},
+		West:  []Coord{{0, 2}, {1, 2}, {2, 2}, {3, 2}},
+	}
 
-	tetriminos[J] = &Tetrimino{3, 3,
-		[]Coord{{0, 1}, {1, 1}, {2, 1}, {2, 2}},
-		[]Coord{{1, 0}, {1, 1}, {1, 2}, {0, 2}},
-		[]Coord{{0, 1}, {0, 2}, {1, 2}, {2, 2}},
-		[]Coord{{1, 0}, {2, 0}, {1, 1}, {1, 2}}}
+	tetriminos[T] = &Tetrimino{3, 3, nil}
+	tetriminos[T].bitmaps = Bitmaps{
+		North: []Coord{{1, 1}, {0, 2}, {1, 2}, {2, 2}},
+		East:  []Coord{{0, 1}, {1, 0}, {1, 1}, {1, 2}},
+		South: []Coord{{0, 1}, {1, 1}, {2, 1}, {1, 2}},
+		West:  []Coord{{2, 1}, {1, 0}, {1, 1}, {1, 2}},
+	}
 
-	tetriminos[L] = &Tetrimino{3, 3,
-		[]Coord{{0, 1}, {1, 1}, {2, 1}, {0, 2}},
-		[]Coord{{0, 0}, {1, 0}, {1, 1}, {2, 1}},
-		[]Coord{{0, 2}, {1, 2}, {2, 2}, {2, 1}},
-		[]Coord{{1, 0}, {1, 1}, {1, 2}, {2, 2}}}
+	tetriminos[J] = &Tetrimino{3, 3, nil}
+	tetriminos[J].bitmaps = Bitmaps{
+		North: []Coord{{0, 0}, {1, 0}, {2, 0}, {2, 1}},
+		East:  []Coord{{1, 0}, {1, 1}, {1, 2}, {0, 2}},
+		South: []Coord{{0, 1}, {0, 2}, {1, 2}, {2, 2}},
+		West:  []Coord{{1, 0}, {2, 0}, {1, 1}, {1, 2}},
+	}
 
-	tetriminos[Z] = &Tetrimino{3, 3,
-		[]Coord{{0, 1}, {1, 1}, {1, 2}, {2, 2}},
-		[]Coord{{2, 0}, {1, 1}, {2, 1}, {1, 2}},
-		[]Coord{{0, 1}, {1, 1}, {1, 2}, {2, 2}},
-		[]Coord{{1, 0}, {0, 1}, {1, 1}, {0, 2}}}
+	tetriminos[L] = &Tetrimino{3, 3, nil}
+	tetriminos[L].bitmaps = Bitmaps{
+		North: []Coord{{0, 0}, {1, 0}, {2, 0}, {0, 1}},
+		East:  []Coord{{0, 0}, {1, 0}, {1, 1}, {1, 2}},
+		South: []Coord{{0, 2}, {1, 2}, {2, 2}, {2, 1}},
+		West:  []Coord{{1, 0}, {1, 1}, {1, 2}, {2, 2}},
+	}
 
-	tetriminos[S] = &Tetrimino{3, 3,
-		[]Coord{{0, 2}, {1, 1}, {1, 2}, {2, 1}},
-		[]Coord{{1, 0}, {1, 1}, {2, 1}, {2, 2}},
-		[]Coord{{0, 2}, {1, 1}, {1, 2}, {2, 1}},
-		[]Coord{{0, 0}, {0, 1}, {1, 1}, {1, 2}}}
+	tetriminos[Z] = &Tetrimino{3, 3, nil}
+	tetriminos[Z].bitmaps = Bitmaps{
+		North: []Coord{{0, 1}, {1, 1}, {1, 2}, {2, 2}},
+		East:  []Coord{{2, 0}, {1, 1}, {2, 1}, {1, 2}},
+		South: []Coord{{0, 1}, {1, 1}, {1, 2}, {2, 2}},
+		West:  []Coord{{1, 0}, {0, 1}, {1, 1}, {0, 2}},
+	}
 
+	tetriminos[S] = &Tetrimino{3, 3, nil}
+	tetriminos[S].bitmaps = Bitmaps{
+		North: []Coord{{0, 2}, {1, 1}, {1, 2}, {2, 1}},
+		East:  []Coord{{1, 0}, {1, 1}, {2, 1}, {2, 2}},
+		South: []Coord{{0, 2}, {1, 1}, {1, 2}, {2, 1}},
+		West:  []Coord{{0, 0}, {0, 1}, {1, 1}, {1, 2}},
+	}
+
+	/*
+		tetriminos[O] = &Tetrimino{2, 2,
+			[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+			[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+			[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+			[]Coord{{0, 0}, {0, 1}, {1, 0}, {1, 1}}}
+
+		tetriminos[I] = &Tetrimino{4, 4,
+			[]Coord{{3, 0}, {3, 1}, {3, 2}, {3, 3}},
+			[]Coord{{0, 1}, {1, 1}, {2, 1}, {3, 1}},
+			[]Coord{{3, 0}, {3, 1}, {3, 2}, {3, 3}},
+			[]Coord{{0, 2}, {1, 2}, {2, 2}, {3, 2}}}
+
+		tetriminos[T] = &Tetrimino{3, 3,
+			[]Coord{{1, 1}, {0, 2}, {1, 2}, {2, 2}},
+			[]Coord{{0, 1}, {1, 0}, {1, 1}, {1, 2}},
+			[]Coord{{0, 1}, {1, 1}, {2, 1}, {1, 2}},
+			[]Coord{{2, 1}, {1, 0}, {1, 1}, {1, 2}}}
+
+		tetriminos[J] = &Tetrimino{3, 3,
+			[]Coord{{0, 1}, {1, 1}, {2, 1}, {2, 2}},
+			[]Coord{{1, 0}, {1, 1}, {1, 2}, {0, 2}},
+			[]Coord{{0, 1}, {0, 2}, {1, 2}, {2, 2}},
+			[]Coord{{1, 0}, {2, 0}, {1, 1}, {1, 2}}}
+
+		tetriminos[L] = &Tetrimino{3, 3,
+			[]Coord{{0, 1}, {1, 1}, {2, 1}, {0, 2}},
+			[]Coord{{0, 0}, {1, 0}, {1, 1}, {2, 1}},
+			[]Coord{{0, 2}, {1, 2}, {2, 2}, {2, 1}},
+			[]Coord{{1, 0}, {1, 1}, {1, 2}, {2, 2}}}
+
+		tetriminos[Z] = &Tetrimino{3, 3,
+			[]Coord{{0, 1}, {1, 1}, {1, 2}, {2, 2}},
+			[]Coord{{2, 0}, {1, 1}, {2, 1}, {1, 2}},
+			[]Coord{{0, 1}, {1, 1}, {1, 2}, {2, 2}},
+			[]Coord{{1, 0}, {0, 1}, {1, 1}, {0, 2}}}
+
+		tetriminos[S] = &Tetrimino{3, 3,
+			[]Coord{{0, 2}, {1, 1}, {1, 2}, {2, 1}},
+			[]Coord{{1, 0}, {1, 1}, {2, 1}, {2, 2}},
+			[]Coord{{0, 2}, {1, 1}, {1, 2}, {2, 1}},
+			[]Coord{{0, 0}, {0, 1}, {1, 1}, {1, 2}}}
+
+	*/
 }
 
 func (t *Tetrimino) draw(w *gc.Window, o Orientation) {
 
 	var p []Coord
-	switch o {
-	case North:
-		p = t.North
-	case East:
-		p = t.East
-	case West:
-		p = t.West
-	case South:
-		p = t.South
+	p = t.bitmaps[o]
+	/*
+		switch o {
+		case North:
+			p = t.bitmaps[Norhtt.North
+		case East:
+			p = t.East
+		case West:
+			p = t.West
+		case South:
+			p = t.South
 
-	}
+		}
+	*/
 	for _, p := range p {
 		w.MoveAddChar(p.y, p.x, '*')
 	}
@@ -383,21 +447,26 @@ func (shape *Shape) updatePath() *Path {
 
 	var p *Path = new(Path)
 
-	switch shape.orientation {
-	case North:
-		p.points = make([]Coord, len(shape.tetriminoTemplate.North))
-		copy(p.points, shape.tetriminoTemplate.North)
-	case East:
-		p.points = make([]Coord, len(shape.tetriminoTemplate.East))
-		copy(p.points, shape.tetriminoTemplate.East)
-	case West:
-		p.points = make([]Coord, len(shape.tetriminoTemplate.West))
-		copy(p.points, shape.tetriminoTemplate.West)
-	case South:
-		p.points = make([]Coord, len(shape.tetriminoTemplate.South))
-		copy(p.points, shape.tetriminoTemplate.South)
+	p.points = make([]Coord, len(shape.tetriminoTemplate.bitmaps[shape.orientation]))
+	copy(p.points, shape.tetriminoTemplate.bitmaps[shape.orientation])
 
-	}
+	/*
+		switch shape.orientation {
+		case North:
+			p.points = make([]Coord, len(shape.tetriminoTemplate.North))
+			copy(p.points, shape.tetriminoTemplate.North)
+		case East:
+			p.points = make([]Coord, len(shape.tetriminoTemplate.East))
+			copy(p.points, shape.tetriminoTemplate.East)
+		case West:
+			p.points = make([]Coord, len(shape.tetriminoTemplate.West))
+			copy(p.points, shape.tetriminoTemplate.West)
+		case South:
+			p.points = make([]Coord, len(shape.tetriminoTemplate.South))
+			copy(p.points, shape.tetriminoTemplate.South)
+
+		}
+	*/
 
 	p.translate(shape.x, shape.y)
 	shape.path = p
@@ -465,6 +534,7 @@ func (game *Game) checkFloor() {
 
 	for _, v := range clearrows {
 
+		game.linesCleared += 1
 		game.win.AttrOn(gc.A_BLINK)
 		game.win.HLine(v, 0, '+', game.right-game.left)
 
@@ -513,7 +583,7 @@ func (game *Game) MoveFallingShape(x int, y int) bool {
 		if game.hitBottom(tmppath) {
 			game.floor.addCoords(game.fallingShape.path.points)
 			game.checkFloor()
-			if game.dropShape() == false {
+			if game.dropShape(RANDOM) == false {
 				return false
 			}
 			return true
@@ -546,6 +616,7 @@ func (game *Game) hitBottom(p *Path) bool {
 func NewGame(parent *gc.Window) *Game {
 
 	game := new(Game)
+	game.linesCleared = 0
 	h, w := parent.MaxYX()
 
 	clog("newGame:  h,w = %v,%v\n", h, w)
@@ -556,6 +627,8 @@ func NewGame(parent *gc.Window) *Game {
 
 	game.floor = NewFill(game.bottom - 1)
 	game.win, _ = gc.NewWindow(h, w, 0, 0)
+
+	game.scoreWin, _ = gc.NewWindow(1, 8, 0, w+3)
 
 	game.shapeWin, _ = gc.NewWindow(1, 1, 1, 5)
 
@@ -575,14 +648,26 @@ func (game *Game) draw(win *gc.Window) {
 		}
 	}
 
+	game.scoreWin.Erase()
+	score := strconv.Itoa(game.linesCleared)
+	game.scoreWin.MoveAddChar(0, 0, 's')
+	game.scoreWin.MoveAddChar(0, 1, ':')
+	for i, c := range score {
+		game.scoreWin.MoveAddChar(0, 3+i, gc.Char(c))
+	}
+
 	game.fallingShape.draw(game.win)
 
 }
 
-func (game *Game) dropShape() bool {
+func (game *Game) dropShape(t TetriminoType) bool {
 
-	r := rand.Intn(6)
-	game.fallingShape = NewShape(TetriminoType(r), game.shapeWin)
+	tet := t
+	if t == RANDOM {
+		tet = TetriminoType(rand.Intn(6))
+	}
+
+	game.fallingShape = NewShape(tet, game.shapeWin)
 
 	if game.fallingShape.getTopEdge() < 0 ||
 		game.hitBottom(game.fallingShape.path) {
@@ -612,16 +697,16 @@ func (game *Game) gameloop() {
 
 	updates := make(chan int)
 
-	game.dropShape()
+	game.dropShape(L)
 
+	go game.handleInput(updates)
 loop:
 
 	for {
 
 		game.draw(stdscr)
 		game.win.Refresh()
-
-		go game.handleInput(updates)
+		game.scoreWin.Refresh()
 
 		select {
 
